@@ -55,8 +55,7 @@ jobs:
         echo '{
           "adminUsername": { "value": "azureuser" },
           "sshPublicKey": { "value": "'"$SSH_KEY"'" },
-          "location": { "value": "'"$LOCATION"'" },
-          "resourceGroupName": { "value": "'"$RESOURCE_GROUP"'" }
+          "location": { "value": "'"$LOCATION"'" }
         }' > bicep/parameters.auto.json
 
     - name: Deploy Bicep
