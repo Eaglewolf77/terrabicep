@@ -21,6 +21,11 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.6.6
+
     - name: Get SSH key from Key Vault
       run: |
         SSH_KEY=$(az keyvault secret show \
@@ -55,4 +60,3 @@ jobs:
           --location $LOCATION \
           --template-file bicep/main.bicep \
           --parameters @bicep/parameters.auto.json
-
