@@ -30,19 +30,19 @@ jobs:
       with:
         terraform_version: 1.6.6
 
-    - name: Get SSH key from Key Vault
+    - name: Get SSH key from Key Vault (JSON safe)
       run: |
         SSH_KEY=$(az keyvault secret show \
           --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
           --name ${{ secrets.ARM_SECRETS_ID }} \
-          --query value -o tsv)
+          --query value -o json)
 
         echo "::add-mask::$SSH_KEY"
-        echo "TF_VAR_ssh_public_key=$SSH_KEY" >> $GITHUB_ENV
+        echo "TF_VAR_ssh_public_key=$(echo $SSH_KEY | jq -r .)" >> $GITHUB_ENV
         echo "TF_VAR_location=$LOCATION" >> $GITHUB_ENV
         echo "TF_VAR_resource_group_name=$RESOURCE_GROUP" >> $GITHUB_ENV
         echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
-        echo "SSH_PUBLIC_KEY=$SSH_KEY" >> $GITHUB_ENV
+        echo "SSH_KEY=$SSH_KEY" >> $GITHUB_ENV
 
     - name: Terraform Init & Apply
       working-directory: terraform
@@ -54,7 +54,7 @@ jobs:
       run: |
         echo '{
           "adminUsername": { "value": "azureuser" },
-          "sshPublicKey": { "value": "'"$SSH_KEY"'" },
+          "sshPublicKey": { "value": '"$SSH_KEY"' },
           "location": { "value": "'"$LOCATION"'" }
         }' > bicep/parameters.auto.json
 
