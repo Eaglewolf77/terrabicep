@@ -19,11 +19,7 @@ jobs:
     - name: Azure login
       uses: azure/login@v1
       with:
-        client-id: ${{ secrets.ARM_CLIENT_ID }}
-        tenant-id: ${{ secrets.ARM_TENANT_ID }}
-        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
-        auth-type: SERVICE_PRINCIPAL
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Get SSH key from Key Vault
       run: |
