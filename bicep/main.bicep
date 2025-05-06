@@ -1,16 +1,10 @@
 param location string = 'swedencentral'
 param adminUsername string
 param sshPublicKey string
-param resourceGroupName string = 'terrabicep'
-
-resource existingRg 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
-  name: resourceGroupName
-}
 
 resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   name: 'bicep-vnet'
   location: location
-  scope: existingRg
   properties: {
     addressSpace: {
       addressPrefixes: ['10.1.0.0/16']
@@ -29,7 +23,6 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
 resource nic 'Microsoft.Network/networkInterfaces@2021-05-01' = {
   name: 'bicep-nic'
   location: location
-  scope: existingRg
   properties: {
     ipConfigurations: [
       {
@@ -48,7 +41,6 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-05-01' = {
 resource vm 'Microsoft.Compute/virtualMachines@2021-07-01' = {
   name: 'bicep-vm'
   location: location
-  scope: existingRg
   properties: {
     hardwareProfile: {
       vmSize: 'Standard_B1s'

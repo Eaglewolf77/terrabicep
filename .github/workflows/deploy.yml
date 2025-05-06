@@ -60,7 +60,7 @@ jobs:
 
     - name: Deploy Bicep
       run: |
-        az deployment sub create \
-          --location $LOCATION \
+        az deployment group create \
+          --resource-group $RESOURCE_GROUP \
           --template-file bicep/main.bicep \
           --parameters @bicep/parameters.auto.json
