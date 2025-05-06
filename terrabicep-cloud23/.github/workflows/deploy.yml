@@ -1,0 +1,53 @@
+name: Deploy with Terraform and Bicep
+
+on:
+  push:
+    branches: [main]
+
+env:
+  LOCATION: swedencentral
+  RESOURCE_GROUP: terrabicep
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+    - name: Get SSH key from Key Vault
+      run: |
+        SSH_KEY=$(az keyvault secret show           --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }}           --name ${{ secrets.ARM_SECRETS_ID }}           --query value -o tsv)
+
+        echo "::add-mask::$SSH_KEY"
+        echo "TF_VAR_ssh_public_key=$SSH_KEY" >> $GITHUB_ENV
+        echo "TF_VAR_location=$LOCATION" >> $GITHUB_ENV
+        echo "TF_VAR_resource_group_name=$RESOURCE_GROUP" >> $GITHUB_ENV
+        echo "SSH_PUBLIC_KEY=$SSH_KEY" >> $GITHUB_ENV
+
+    - name: Terraform Init & Apply
+      working-directory: terraform
+      run: |
+        terraform init
+        terraform apply -auto-approve
+
+    - name: Generate Bicep parameters
+      run: |
+        echo '{
+          "adminUsername": { "value": "azureuser" },
+          "sshPublicKey": { "value": "'"$SSH_KEY"'" },
+          "location": { "value": "'"$LOCATION"'" },
+          "resourceGroupName": { "value": "'"$RESOURCE_GROUP"'" }
+        }' > bicep/parameters.auto.json
+
+    - name: Deploy Bicep
+      run: |
+        az deployment sub create           --location $LOCATION           --template-file bicep/main.bicep           --parameters @bicep/parameters.auto.json
