@@ -1,19 +1,12 @@
 variable "location" {
-  type    = string
-  default = "swedencentral"
+  type = string
 }
-
 variable "resource_group_name" {
-  type    = string
-  default = "terrabicep"
+  type = string
 }
-
-variable "ssh_public_key" {
-  type        = string
-  description = "SSH public key for VM login"
+variable "kv_name" {
+  type = string
 }
-
-variable "subscription_id" {
-  type        = string
-  description = "Azure subscription ID"
+variable "kv_secret_name" {
+  type = string
 }

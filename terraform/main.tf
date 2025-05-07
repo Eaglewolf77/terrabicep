@@ -9,7 +9,33 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = var.subscription_id
+}
+
+variable "location" {
+  type    = string
+}
+variable "resource_group_name" {
+  type = string
+}
+variable "kv_name" {
+  type = string
+}
+variable "kv_secret_name" {
+  type = string
+}
+
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
+}
+
+data "azurerm_key_vault" "kv" {
+  name                = var.kv_name
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+data "azurerm_key_vault_secret" "sshkey" {
+  name         = var.kv_secret_name
+  key_vault_id = data.azurerm_key_vault.kv.id
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -50,7 +76,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = var.ssh_public_key
+    public_key = data.azurerm_key_vault_secret.sshkey.value
   }
 
   os_disk {
