@@ -36,7 +36,6 @@ jobs:
           --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
           --name ${{ secrets.ARM_SECRETS_ID }} \
           --query value -o tsv)
-
         echo "::add-mask::$SSH_KEY"
         echo "TF_VAR_ssh_public_key=$SSH_KEY" >> $GITHUB_ENV
         echo "TF_VAR_location=$LOCATION" >> $GITHUB_ENV
@@ -47,11 +46,14 @@ jobs:
       working-directory: terraform
       run: |
         echo "Starting Terraform at $(date)"
-        # Init backend using environment variables for SP auth
         time terraform init \
           -backend-config="resource_group_name=${RESOURCE_GROUP}" \
           -backend-config="storage_account_name=terrabicepstate" \
           -backend-config="container_name=tfstate" \
-          -backend-config="key=terraform.tfstate"
+          -backend-config="key=terraform.tfstate" \
+          -backend-config="subscription_id=${ARM_SUBSCRIPTION_ID}" \
+          -backend-config="tenant_id=${ARM_TENANT_ID}" \
+          -backend-config="client_id=${ARM_CLIENT_ID}" \
+          -backend-config="client_secret=${ARM_CLIENT_SECRET}"
         time terraform apply -auto-approve
         echo "Finished Terraform at $(date)"
