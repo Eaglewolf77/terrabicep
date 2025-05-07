@@ -22,6 +22,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Verify SP Secret Exists
+        run: |
+          if [ -z "$ARM_CLIENT_SECRET" ]; then
+            echo "❌ ARM_CLIENT_SECRET is empty!"
+            exit 1
+          else
+            echo "✅ ARM_CLIENT_SECRET is set (length: ${#ARM_CLIENT_SECRET})"
+          fi
+
       - name: Azure CLI login as Service Principal
         uses: azure/cli@v1
         with:
