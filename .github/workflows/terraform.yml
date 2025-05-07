@@ -5,13 +5,8 @@ on:
     branches: [main]
 
 env:
-  # Miljövariabler för Terraform-provider & backend
-  LOCATION:            swedencentral
-  RESOURCE_GROUP:      terrabicep
-
-  # Dessa behöver inte anges här utan plockas upp av azure/login
-  # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID  
-  # definieras i din AZURE_CREDENTIALS–JSON-secret
+  LOCATION:       swedencentral
+  RESOURCE_GROUP: terrabicep
 
 jobs:
   terraform:
@@ -21,30 +16,27 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # 1) SP-inloggning via azure/login@v1
       - name: Azure login as Service Principal
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      # 2) Installera Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
-      # 3) Init + Apply med timing
-      - name: Terraform Init & Apply with timing
+      - name: Terraform Init & Apply
         working-directory: terraform
         run: |
           echo "Starting Terraform at $(date)"
-          time terraform init \
+          terraform init \
             -backend-config="resource_group_name=${RESOURCE_GROUP}" \
             -backend-config="storage_account_name=terrabicepstate" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
-          time terraform apply -auto-approve \
+          terraform apply -auto-approve \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
             -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
