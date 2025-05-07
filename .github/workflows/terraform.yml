@@ -5,10 +5,6 @@ on:
     branches: [main]
 
 env:
-  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   LOCATION:            swedencentral
   RESOURCE_GROUP:      terrabicep
   KV_NAME:             terrabicep-kv-cloud23
@@ -19,36 +15,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Azure CLI login as Service Principal
-      uses: azure/cli@v1
-      with:
-        inlineScript: |
-          az login --service-principal \
-            --username ${{ secrets.ARM_CLIENT_ID }} \
-            --password ${{ secrets.ARM_CLIENT_SECRET }} \
-            --tenant ${{ secrets.ARM_TENANT_ID }}
-          az account set --subscription ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
 
-    - name: Install Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.6
-
-    - name: Terraform Init & Apply with timing
-      working-directory: terraform
-      run: |
-        echo "Starting Terraform at $(date)"
-        time terraform init \
-          -backend-config="resource_group_name=${RESOURCE_GROUP}" \
-          -backend-config="storage_account_name=terrabicepstate" \
-          -backend-config="container_name=tfstate" \
-          -backend-config="key=terraform.tfstate"
-        time terraform apply -auto-approve \
-          -var="location=${LOCATION}" \
-          -var="resource_group_name=${RESOURCE_GROUP}" \
-          -var="kv_name=${KV_NAME}" \
-          -var="kv_secret_name=${KV_SECRET_NAME}"
-        echo "Finished Terraform at $(date)"
+      - name: Terraform Init & Apply with timing
+        working-directory: terraform
+        run: |
+          echo "Starting Terraform at $(date)"
+          time terraform init \
+            -backend-config="resource_group_name=${RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=terrabicepstate" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=terraform.tfstate"
+          time terraform apply -auto-approve \
+            -var="subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" \
+            -var="client_id=${{ secrets.ARM_CLIENT_ID }}" \
+            -var="client_secret=${{ secrets.ARM_CLIENT_SECRET }}" \
+            -var="tenant_id=${{ secrets.ARM_TENANT_ID }}" \
+            -var="location=${LOCATION}" \
+            -var="resource_group_name=${RESOURCE_GROUP}" \
+            -var="kv_name=${KV_NAME}" \
+            -var="kv_secret_name=${KV_SECRET_NAME}"
+          echo "Finished Terraform at $(date)"
