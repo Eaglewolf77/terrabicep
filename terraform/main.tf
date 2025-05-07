@@ -11,19 +11,6 @@ provider "azurerm" {
   features {}
 }
 
-variable "location" {
-  type    = string
-}
-variable "resource_group_name" {
-  type = string
-}
-variable "kv_name" {
-  type = string
-}
-variable "kv_secret_name" {
-  type = string
-}
-
 data "azurerm_resource_group" "rg" {
   name = var.resource_group_name
 }
