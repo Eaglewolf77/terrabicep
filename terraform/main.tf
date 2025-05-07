@@ -16,6 +16,7 @@ provider "azurerm" {
   tenant_id       = var.tenant_id
 }
 
+### Dataresurser ###
 data "azurerm_resource_group" "rg" {
   name = var.resource_group_name
 }
@@ -30,6 +31,7 @@ data "azurerm_key_vault_secret" "sshkey" {
   key_vault_id = data.azurerm_key_vault.kv.id
 }
 
+### Infrastruktur ###
 resource "azurerm_virtual_network" "vnet" {
   name                = "terraform-vnet"
   address_space       = ["10.2.0.0/16"]

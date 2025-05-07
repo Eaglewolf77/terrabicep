@@ -11,8 +11,6 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   LOCATION:            swedencentral
   RESOURCE_GROUP:      terrabicep
-  KV_NAME:             terrabicep-kv-cloud23
-  KV_SECRET_NAME:      vm-password
 
 jobs:
   terraform:
@@ -21,15 +19,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
-      - name: Verify SP Secret Exists
-        run: |
-          if [ -z "$ARM_CLIENT_SECRET" ]; then
-            echo "❌ ARM_CLIENT_SECRET is empty!"
-            exit 1
-          else
-            echo "✅ ARM_CLIENT_SECRET is set (length: ${#ARM_CLIENT_SECRET})"
-          fi
 
       - name: Azure CLI login as Service Principal
         uses: azure/cli@v1
@@ -46,38 +35,22 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Debug Key Vault Variables
-        run: |
-          echo "KV_NAME:       '$KV_NAME'"
-          echo "KV_SECRET_NAME:'$KV_SECRET_NAME'"
-
-      - name: Get SSH key from Key Vault (unmasked debug)
-        run: |
-          AZ_KV_NAME="terrabicep-kv-cloud23"
-          AZ_KV_SECRET="vm-password"
-          echo "COMMAND: az keyvault secret show --vault-name $AZ_KV_NAME --name $AZ_KV_SECRET --query value -o tsv"
-          SSH_KEY=$(az keyvault secret show \
-            --vault-name $AZ_KV_NAME \
-            --name $AZ_KV_SECRET \
-            --query value -o tsv)
-          echo "RAW SSH_KEY: $SSH_KEY"
-
-      - name: Terraform Init & Apply with timing
+      - name: Terraform Init & Apply
         working-directory: terraform
         run: |
           echo "Starting Terraform at $(date)"
-          time terraform init \
+          terraform init \
             -backend-config="resource_group_name=${RESOURCE_GROUP}" \
             -backend-config="storage_account_name=terrabicepstate" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
-          time terraform apply -auto-approve \
+          terraform apply -auto-approve \
             -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
             -var="client_id=$ARM_CLIENT_ID" \
             -var="client_secret=$ARM_CLIENT_SECRET" \
             -var="tenant_id=$ARM_TENANT_ID" \
             -var="location=$LOCATION" \
             -var="resource_group_name=$RESOURCE_GROUP" \
-            -var="kv_name=$KV_NAME" \
-            -var="kv_secret_name=$KV_SECRET_NAME"
+            -var="kv_name=terrabicep-kv-cloud23" \
+            -var="kv_secret_name=vm-password"
           echo "Finished Terraform at $(date)"
