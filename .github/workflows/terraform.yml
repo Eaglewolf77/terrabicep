@@ -39,8 +39,8 @@ jobs:
 
       - name: Debug Key Vault Variables
         run: |
-          echo "KV_NAME is:  $KV_NAME"
-          echo "KV_SECRET_NAME is:  $KV_SECRET_NAME"
+          echo "KV_NAME:      '$KV_NAME'"
+          echo "KV_SECRET_NAME: '$KV_SECRET_NAME'"
 
       - name: Get SSH key from Key Vault
         run: |
@@ -49,9 +49,9 @@ jobs:
             --name $KV_SECRET_NAME \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
-          echo "TF_VAR_ssh_public_key=$SSH_KEY"             >> $GITHUB_ENV
-          echo "TF_VAR_location=$LOCATION"                  >> $GITHUB_ENV
-          echo "TF_VAR_resource_group_name=$RESOURCE_GROUP" >> $GITHUB_ENV
+          echo "TF_VAR_ssh_public_key=$SSH_KEY"              >> $GITHUB_ENV
+          echo "TF_VAR_location=$LOCATION"                   >> $GITHUB_ENV
+          echo "TF_VAR_resource_group_name=$RESOURCE_GROUP"  >> $GITHUB_ENV
           echo "TF_VAR_subscription_id=$ARM_SUBSCRIPTION_ID" >> $GITHUB_ENV
 
       - name: Terraform Init & Apply with timing
