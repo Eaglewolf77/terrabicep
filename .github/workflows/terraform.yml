@@ -27,15 +27,20 @@ jobs:
         with:
           inlineScript: |
             az login --service-principal \
-              --username ${{ secrets.ARM_CLIENT_ID }} \
-              --password ${{ secrets.ARM_CLIENT_SECRET }} \
-              --tenant ${{ secrets.ARM_TENANT_ID }}
-            az account set --subscription ${{ secrets.ARM_SUBSCRIPTION_ID }}
+              --username $ARM_CLIENT_ID \
+              --password $ARM_CLIENT_SECRET \
+              --tenant $ARM_TENANT_ID
+            az account set --subscription $ARM_SUBSCRIPTION_ID
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
+
+      - name: Debug Key Vault Variables
+        run: |
+          echo "KV_NAME is:  $KV_NAME"
+          echo "KV_SECRET_NAME is:  $KV_SECRET_NAME"
 
       - name: Get SSH key from Key Vault
         run: |
@@ -44,10 +49,10 @@ jobs:
             --name $KV_SECRET_NAME \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
-          echo "TF_VAR_ssh_public_key=$SSH_KEY"              >> $GITHUB_ENV
-          echo "TF_VAR_location=$LOCATION"                   >> $GITHUB_ENV
-          echo "TF_VAR_resource_group_name=$RESOURCE_GROUP"  >> $GITHUB_ENV
-          echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_ssh_public_key=$SSH_KEY"             >> $GITHUB_ENV
+          echo "TF_VAR_location=$LOCATION"                  >> $GITHUB_ENV
+          echo "TF_VAR_resource_group_name=$RESOURCE_GROUP" >> $GITHUB_ENV
+          echo "TF_VAR_subscription_id=$ARM_SUBSCRIPTION_ID" >> $GITHUB_ENV
 
       - name: Terraform Init & Apply with timing
         working-directory: terraform
@@ -59,12 +64,12 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
           time terraform apply -auto-approve \
-            -var="subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" \
-            -var="client_id=${{ secrets.ARM_CLIENT_ID }}" \
-            -var="client_secret=${{ secrets.ARM_CLIENT_SECRET }}" \
-            -var="tenant_id=${{ secrets.ARM_TENANT_ID }}" \
-            -var="location=${LOCATION}" \
-            -var="resource_group_name=${RESOURCE_GROUP}" \
-            -var="kv_name=${KV_NAME}" \
-            -var="kv_secret_name=${KV_SECRET_NAME}"
+            -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+            -var="client_id=$ARM_CLIENT_ID" \
+            -var="client_secret=$ARM_CLIENT_SECRET" \
+            -var="tenant_id=$ARM_TENANT_ID" \
+            -var="location=$LOCATION" \
+            -var="resource_group_name=$RESOURCE_GROUP" \
+            -var="kv_name=$KV_NAME" \
+            -var="kv_secret_name=$KV_SECRET_NAME"
           echo "Finished Terraform at $(date)"
