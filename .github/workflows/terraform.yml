@@ -26,6 +26,13 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         auth-type: service_principal
 
+    - name: Export Azure SP env vars
+      run: |
+        echo "AZURE_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}" >> $GITHUB_ENV
+        echo "AZURE_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
+        echo "AZURE_TENANT_ID=${{ secrets.ARM_TENANT_ID }}" >> $GITHUB_ENV
+        echo "AZURE_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v2
       with:
@@ -37,7 +44,6 @@ jobs:
           --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
           --name ${{ secrets.ARM_SECRETS_ID }} \
           --query value -o tsv)
-
         echo "::add-mask::$SSH_KEY"
         echo "TF_VAR_ssh_public_key=$SSH_KEY" >> $GITHUB_ENV
         echo "TF_VAR_location=$LOCATION" >> $GITHUB_ENV
@@ -53,9 +59,9 @@ jobs:
           -backend-config="storage_account_name=terrabicepstate" \
           -backend-config="container_name=tfstate" \
           -backend-config="key=terraform.tfstate" \
-          -backend-config="subscription_id=${ARM_SUBSCRIPTION_ID}" \
-          -backend-config="tenant_id=${ARM_TENANT_ID}" \
-          -backend-config="client_id=${ARM_CLIENT_ID}" \
-          -backend-config="client_secret=${ARM_CLIENT_SECRET}"
+          -backend-config="subscription_id=${AZURE_SUBSCRIPTION_ID}" \
+          -backend-config="tenant_id=${AZURE_TENANT_ID}" \
+          -backend-config="client_id=${AZURE_CLIENT_ID}" \
+          -backend-config="client_secret=${AZURE_CLIENT_SECRET}"
         time terraform apply -auto-approve
         echo "Finished Terraform at $(date)"
