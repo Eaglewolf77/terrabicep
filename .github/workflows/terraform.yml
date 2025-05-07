@@ -5,12 +5,13 @@ on:
     branches: [main]
 
 env:
-  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  # Miljövariabler för Terraform-provider & backend
   LOCATION:            swedencentral
   RESOURCE_GROUP:      terrabicep
+
+  # Dessa behöver inte anges här utan plockas upp av azure/login
+  # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID  
+  # definieras i din AZURE_CREDENTIALS–JSON-secret
 
 jobs:
   terraform:
@@ -20,37 +21,36 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Azure CLI login as Service Principal
-        uses: azure/cli@v1
+      # 1) SP-inloggning via azure/login@v1
+      - name: Azure login as Service Principal
+        uses: azure/login@v1
         with:
-          inlineScript: |
-            az login --service-principal \
-              --username $ARM_CLIENT_ID \
-              --password="$ARM_CLIENT_SECRET" \
-              --tenant $ARM_TENANT_ID
-            az account set --subscription $ARM_SUBSCRIPTION_ID
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service_principal
 
+      # 2) Installera Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
-      - name: Terraform Init & Apply
+      # 3) Init + Apply med timing
+      - name: Terraform Init & Apply with timing
         working-directory: terraform
         run: |
           echo "Starting Terraform at $(date)"
-          terraform init \
+          time terraform init \
             -backend-config="resource_group_name=${RESOURCE_GROUP}" \
             -backend-config="storage_account_name=terrabicepstate" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
-          terraform apply -auto-approve \
-            -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-            -var="client_id=$ARM_CLIENT_ID" \
-            -var="client_secret=$ARM_CLIENT_SECRET" \
-            -var="tenant_id=$ARM_TENANT_ID" \
-            -var="location=$LOCATION" \
-            -var="resource_group_name=$RESOURCE_GROUP" \
+          time terraform apply -auto-approve \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var="location=${LOCATION}" \
+            -var="resource_group_name=${RESOURCE_GROUP}" \
             -var="kv_name=terrabicep-kv-cloud23" \
             -var="kv_secret_name=vm-password"
           echo "Finished Terraform at $(date)"
