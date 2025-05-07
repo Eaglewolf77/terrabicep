@@ -11,6 +11,7 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   LOCATION:            swedencentral
   RESOURCE_GROUP:      terrabicep
+  # These are still defined for later use if needed
   KV_NAME:             terrabicep-kv-cloud23
   KV_SECRET_NAME:      vm-password
 
@@ -51,11 +52,14 @@ jobs:
           echo "KV_NAME:       '$KV_NAME'"
           echo "KV_SECRET_NAME:'$KV_SECRET_NAME'"
 
-      - name: Get SSH key from Key Vault
+      - name: Get SSH key from Key Vault (hard-coded for debug)
         run: |
+          AZ_KV_NAME="terrabicep-kv-cloud23"
+          AZ_KV_SECRET="vm-password"
+          echo "Running: az keyvault secret show --vault-name $AZ_KV_NAME --name $AZ_KV_SECRET"
           SSH_KEY=$(az keyvault secret show \
-            --vault-name $KV_NAME \
-            --name $KV_SECRET_NAME \
+            --vault-name $AZ_KV_NAME \
+            --name $AZ_KV_SECRET \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           echo "TF_VAR_ssh_public_key=$SSH_KEY"             >> $GITHUB_ENV
@@ -79,6 +83,6 @@ jobs:
             -var="tenant_id=$ARM_TENANT_ID" \
             -var="location=$LOCATION" \
             -var="resource_group_name=$RESOURCE_GROUP" \
-            -var="kv_name=$KV_NAME" \
-            -var="kv_secret_name=$KV_SECRET_NAME"
+            -var="kv_name=$AZ_KV_NAME" \
+            -var="kv_secret_name=$AZ_KV_SECRET"
           echo "Finished Terraform at $(date)"
