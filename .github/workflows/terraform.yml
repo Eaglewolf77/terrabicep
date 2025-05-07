@@ -5,13 +5,8 @@ on:
     branches: [main]
 
 env:
-  # För Terraform-provider & backend
-  ARM_CLIENT_ID:      ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:  ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID:      ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID:${{ secrets.ARM_SUBSCRIPTION_ID }}
-  LOCATION:           swedencentral
-  RESOURCE_GROUP:     terrabicep
+  LOCATION: swedencentral
+  RESOURCE_GROUP: terrabicep
 
 jobs:
   terraform:
@@ -21,22 +16,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # 1) Logga in för alla 'az ...'-kommandon
-      - name: Azure CLI login for az commands
-        uses: azure/cli@v1
+      - name: Azure login as Service Principal
+        uses: azure/login@v2
         with:
-          inlineScript: |
-            az login --service-principal \
-              --username $ARM_CLIENT_ID \
-              --password $ARM_CLIENT_SECRET \
-              --tenant $ARM_TENANT_ID
+          client-id:        ${{ secrets.ARM_CLIENT_ID }}
+          client-secret:    ${{ secrets.ARM_CLIENT_SECRET }}
+          tenant-id:        ${{ secrets.ARM_TENANT_ID }}
+          subscription-id:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          auth-type:        service_principal
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
-      # 2) Hämta SSH-nyckel
       - name: Get SSH key from Key Vault
         run: |
           SSH_KEY=$(az keyvault secret show \
@@ -47,8 +40,8 @@ jobs:
           echo "TF_VAR_ssh_public_key=$SSH_KEY"         >> $GITHUB_ENV
           echo "TF_VAR_location=$LOCATION"              >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RESOURCE_GROUP" >> $GITHUB_ENV
+          echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
-      # 3) Init & Apply mot AzureRM-backenden med ARM_*-env
       - name: Terraform Init & Apply with timing
         working-directory: terraform
         run: |
