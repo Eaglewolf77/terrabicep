@@ -20,13 +20,10 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Azure login as SP
+    - name: Azure login as Service Principal
       uses: azure/login@v1
       with:
-        client-id: ${{ secrets.ARM_CLIENT_ID }}
-        client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
-        tenant-id: ${{ secrets.ARM_TENANT_ID }}
-        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
         auth-type: service_principal
 
     - name: Install Terraform
@@ -40,6 +37,7 @@ jobs:
           --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
           --name ${{ secrets.ARM_SECRETS_ID }} \
           --query value -o tsv)
+
         echo "::add-mask::$SSH_KEY"
         echo "TF_VAR_ssh_public_key=$SSH_KEY" >> $GITHUB_ENV
         echo "TF_VAR_location=$LOCATION" >> $GITHUB_ENV
