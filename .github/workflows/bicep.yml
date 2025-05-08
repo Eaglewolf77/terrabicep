@@ -7,10 +7,6 @@ on:
 env:
   LOCATION:       swedencentral
   RESOURCE_GROUP: terrabicep
-  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
 jobs:
   bicep:
@@ -26,7 +22,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Generate Bicep parameters
+      - name: Get SSH key from Key Vault
         run: |
           SSH_KEY=$(az keyvault secret show \
             --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
@@ -35,13 +31,13 @@ jobs:
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
           cat > bicep/parameters.auto.json <<EOF
-          {
-            "adminUsername": { "value": "azureuser" },
-            "sshPublicKey":  { "value": "$SSH_KEY" },
-            "location":      { "value": "${{ env.LOCATION }}" },
-            "resourceGroupName": { "value": "${{ env.RESOURCE_GROUP }}" }
-          }
-          EOF
+{
+  "adminUsername":    { "value": "azureuser" },
+  "sshPublicKey":     { "value": "$SSH_KEY" },
+  "location":         { "value": "${{ env.LOCATION }}" },
+  "resourceGroupName":{ "value": "${{ env.RESOURCE_GROUP }}" }
+}
+EOF
 
       - name: Deploy Bicep with timing
         run: |
