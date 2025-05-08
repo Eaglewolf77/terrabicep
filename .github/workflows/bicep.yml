@@ -22,7 +22,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Get SSH key from Key Vault
+      - name: Get SSH key and generate parameters
         run: |
           SSH_KEY=$(az keyvault secret show \
             --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
@@ -38,6 +38,7 @@ jobs:
             "resourceGroupName": { "value": "${{ env.RESOURCE_GROUP }}" }
           }
           EOF
+
       - name: Deploy Bicep with timing
         run: |
           echo "Starting Bicep at $(date)"
