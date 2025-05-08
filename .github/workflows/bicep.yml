@@ -36,7 +36,7 @@ jobs:
             "sshPublicKey":  { "value": "$SSH_KEY" },
             "location":      { "value": "${{ env.LOCATION }}" }
           }
-            EOF
+          EOF
 
       - name: Deploy Bicep with timing
         run: |
