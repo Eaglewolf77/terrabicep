@@ -30,13 +30,12 @@ jobs:
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          cat > bicep/parameters.auto.json <<EOF
-          {
-            "adminUsername": { "value": "azureuser" },
-            "sshPublicKey":  { "value": "$SSH_KEY" },
-            "location":      { "value": "${{ env.LOCATION }}" }
-          }
-          EOF
+          printf '{
+                    "adminUsername": { "value": "azureuser" },
+                    "sshPublicKey":  { "value": "%s" },
+                    "location":      { "value": "%s" }
+                  }' "$SSH_KEY" "${{ env.LOCATION }}" > bicep/parameters.auto.json
+
       - name: Deploy Bicep with timing
         run: |
           echo "Starting Bicep at $(date)"
