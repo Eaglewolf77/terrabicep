@@ -2,10 +2,11 @@ name: Bicep Deployment
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 env:
-  LOCATION:       swedencentral
+  LOCATION: swedencentral
   RESOURCE_GROUP: terrabicep
 
 jobs:
@@ -30,16 +31,18 @@ jobs:
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          printf '{
+          cat > bicep/parameters.auto.json << 'EOF'
+{
   "adminUsername": { "value": "azureuser" },
-  "sshPublicKey":  { "value": "%s" },
-  "location":      { "value": "%s" }
-}' "$SSH_KEY" "${{ env.LOCATION }}" > bicep/parameters.auto.json
+  "sshPublicKey":  { "value": "'"$SSH_KEY"'" },
+  "location":      { "value": "'"${{ env.LOCATION }}"'" }
+}
+EOF
 
       - name: Deploy Bicep with timing
         run: |
           echo "Starting Bicep at $(date)"
-          time az deployment group create \
+          az deployment group create \
             --resource-group $RESOURCE_GROUP \
             --template-file bicep/main.bicep \
             --parameters @bicep/parameters.auto.json
