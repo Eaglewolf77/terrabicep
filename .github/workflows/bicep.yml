@@ -31,19 +31,11 @@ jobs:
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          cat > bicep/parameters.auto.json << 'EOF'
-          {
+          # <--- 10 mellanslag före cat
+          cat <<EOF > bicep/parameters.auto.json
+          {                             # 10+2 mellanslag, dvs 12 totalt
             "adminUsername": { "value": "azureuser" },
             "sshPublicKey":  { "value": "'"$SSH_KEY"'" },
             "location":      { "value": "'"${{ env.LOCATION }}"'" }
           }
-          EOF
-
-      - name: Deploy Bicep with timing
-        run: |
-          echo "Starting Bicep at $(date)"
-          az deployment group create \
-            --resource-group $RESOURCE_GROUP \
-            --template-file bicep/main.bicep \
-            --parameters @bicep/parameters.auto.json
-          echo "Finished Bicep at $(date)"
+          EOF                           # Samma 10 mellanslag som cat
