@@ -15,13 +15,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-       
-      - name: Dump workflow contents
-        run: |
-          echo "--- BEGIN bicep.yml ---"
-          sed -n '1,200p' .github/workflows/bicep.yml
-          echo "--- END bicep.yml ---"
-   
+
       - name: Azure login as Service Principal
         uses: azure/login@v1
         with:
@@ -37,10 +31,10 @@ jobs:
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
           printf '{
-                    "adminUsername": { "value": "azureuser" },
-                    "sshPublicKey":  { "value": "%s" },
-                    "location":      { "value": "%s" }
-                  }' "$SSH_KEY" "${{ env.LOCATION }}" > bicep/parameters.auto.json
+  "adminUsername": { "value": "azureuser" },
+  "sshPublicKey":  { "value": "%s" },
+  "location":      { "value": "%s" }
+}' "$SSH_KEY" "${{ env.LOCATION }}" > bicep/parameters.auto.json
 
       - name: Deploy Bicep with timing
         run: |
