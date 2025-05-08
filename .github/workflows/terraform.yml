@@ -13,23 +13,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Azure login as Service Principal
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
-        # Den här raden gör att azure/login även sätter ARM_*-variabler åt dig
-        env:
-          AZURE_CLI: login
 
-      - name: Export ARM env vars for Terraform
+      - name: Export ARM_* env vars for Terraform
         run: |
-          echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}"      >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}"      >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
