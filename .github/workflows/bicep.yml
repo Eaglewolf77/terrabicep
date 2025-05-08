@@ -32,12 +32,11 @@ jobs:
           mkdir -p bicep
           cat > bicep/parameters.auto.json <<EOF
           {
-            "adminUsername":     { "value": "azureuser" },
-            "sshPublicKey":      { "value": "$SSH_KEY" },
-            "location":          { "value": "${{ env.LOCATION }}" },
-            "resourceGroupName": { "value": "${{ env.RESOURCE_GROUP }}" }
+            "adminUsername": { "value": "azureuser" },
+            "sshPublicKey":  { "value": "$SSH_KEY" },
+            "location":      { "value": "${{ env.LOCATION }}" }
           }
-          EOF
+            EOF
 
       - name: Deploy Bicep with timing
         run: |
