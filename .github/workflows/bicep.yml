@@ -1,5 +1,3 @@
-name: Bicep Deployment
-
 on:
   push:
     branches: [main]
@@ -41,8 +39,52 @@ jobs:
       - name: Deploy Bicep with timing
         run: |
           echo "Starting Bicep at $(date)"
+          time az deployment group create name: Bicep Deployment
+
+on:
+  push:
+    branches: [main]
+
+env:
+  LOCATION:       swedencentral
+  RESOURCE_GROUP: terrabicep
+
+jobs:
+  bicep:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Azure login as Service Principal
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service_principal
+
+      - name: Get SSH key and generate parameters
+        run: |
+          SSH_KEY=$(az keyvault secret show \
+            --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
+            --name ${{ secrets.ARM_SECRETS_ID }} \
+            --query value -o tsv)
+          echo "::add-mask::$SSH_KEY"
+          mkdir -p bicep
+          cat > bicep/parameters.auto.json <<EOF
+{
+  "adminUsername": { "value": "azureuser" },
+  "sshPublicKey":  { "value": "$SSH_KEY" },
+  "location":      { "value": "${{ env.LOCATION }}" }
+}
+EOF
+
+      - name: Deploy Bicep with timing
+        run: |
+          echo "Starting Bicep at $(date)"
           time az deployment group create \
             --resource-group $RESOURCE_GROUP \
             --template-file bicep/main.bicep \
             --parameters @bicep/parameters.auto.json
+          echo "Finished Bicep at $(date)"
           echo "Finished Bicep at $(date)"
