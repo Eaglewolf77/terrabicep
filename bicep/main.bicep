@@ -1,13 +1,21 @@
-param location string = 'swedencentral'
-param adminUsername string
-param sshPublicKey string
+@description('The Azure location to deploy into')
+param location        string = 'swedencentral'
 
+@description('Admin username for the VM')
+param adminUsername   string
+
+@description('SSH public key for VM login')
+param sshPublicKey    string
+
+// Virtuellt nätverk
 resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   name: 'bicep-vnet'
   location: location
   properties: {
     addressSpace: {
-      addressPrefixes: ['10.1.0.0/16']
+      addressPrefixes: [
+        '10.1.0.0/16'
+      ]
     }
     subnets: [
       {
@@ -20,6 +28,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
   }
 }
 
+// Network Interface kopplad till subnätet
 resource nic 'Microsoft.Network/networkInterfaces@2021-05-01' = {
   name: 'bicep-nic'
   location: location
@@ -38,6 +47,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-05-01' = {
   }
 }
 
+// Linux-VM med SSH-nyckel
 resource vm 'Microsoft.Compute/virtualMachines@2021-07-01' = {
   name: 'bicep-vm'
   location: location
