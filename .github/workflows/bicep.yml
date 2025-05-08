@@ -6,8 +6,10 @@ on:
       - main
 
 env:
-  LOCATION: swedencentral
+  LOCATION:       swedencentral
   RESOURCE_GROUP: terrabicep
+  KV_NAME:        ${{ secrets.ARM_KEY_VAULT_NAME }}
+  SECRET_NAME:    ${{ secrets.ARM_SECRETS_ID }}
 
 jobs:
   bicep:
@@ -23,15 +25,20 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
+      - name: Debug Key Vault names
+        run: |
+          echo "Using Key Vault name : $KV_NAME"
+          echo "Using Secret name    : $SECRET_NAME"
+
       - name: Get SSH key and generate parameters
         run: |
           SSH_KEY=$(az keyvault secret show \
-            --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
-            --name ${{ secrets.ARM_SECRETS_ID }} \
+            --vault-name "$KV_NAME" \
+            --name "$SECRET_NAME" \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          echo "{\"adminUsername\":{\"value\":\"azureuser\"},\"sshPublicKey\":{\"value\":\"$SSH_KEY\"},\"location\":{\"value\":\"${{ env.LOCATION }}\"}}" > bicep/parameters.auto.json
+          echo "{\"adminUsername\":{\"value\":\"azureuser\"},\"sshPublicKey\":{\"value\":\"$SSH_KEY\"},\"location\":{\"value\":\"$LOCATION\"}}" > bicep/parameters.auto.json
 
       - name: Deploy Bicep
         run: |
