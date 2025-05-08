@@ -15,7 +15,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
+       
+      - name: Dump workflow contents
+        run: |
+          echo "--- BEGIN bicep.yml ---"
+          sed -n '1,200p' .github/workflows/bicep.yml
+          echo "--- END bicep.yml ---"
+   
       - name: Azure login as Service Principal
         uses: azure/login@v1
         with:
