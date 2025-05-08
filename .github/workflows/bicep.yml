@@ -8,8 +8,8 @@ on:
 env:
   LOCATION:       swedencentral
   RESOURCE_GROUP: terrabicep
-  KV_NAME:        ${{ secrets.ARM_KEY_VAULT_NAME }}
-  SECRET_NAME:    ${{ secrets.ARM_SECRETS_ID }}
+  KV_NAME:        terrabicep-kv-cloud23    # Hård-kodade, ej från secrets
+  SECRET_NAME:    sshPublicKey             # Hård-kodade
 
 jobs:
   bicep:
@@ -25,7 +25,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Debug Key Vault names
+      - name: Debug KV names
         run: |
           echo "Using Key Vault name : $KV_NAME"
           echo "Using Secret name    : $SECRET_NAME"
@@ -38,6 +38,7 @@ jobs:
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
+          # Inga *** alls här:
           echo "{\"adminUsername\":{\"value\":\"azureuser\"},\"sshPublicKey\":{\"value\":\"$SSH_KEY\"},\"location\":{\"value\":\"$LOCATION\"}}" > bicep/parameters.auto.json
 
       - name: Deploy Bicep
