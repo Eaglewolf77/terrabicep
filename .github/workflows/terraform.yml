@@ -65,5 +65,5 @@ jobs:
             -var="location=${LOCATION}" \
             -var="resource_group_name=${RESOURCE_GROUP}" \
             -var="kv_name=terrabicep-kv-cloud23" \
-            -var="kv_secret_name=vm-password"
+            -var="kv_secret_name=sshPublicKey"
           echo "Finished Terraform at $(date)"
