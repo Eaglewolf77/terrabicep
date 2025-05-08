@@ -13,8 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Azure login as Service Principal
         uses: azure/login@v1
@@ -28,6 +27,21 @@ jobs:
           echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}"      >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+
+      - name: Ensure storage account & container exist
+        run: |
+          az storage account show --name terrabicepstate --resource-group ${RESOURCE_GROUP} \
+            || az storage account create \
+                 --name terrabicepstate \
+                 --resource-group ${RESOURCE_GROUP} \
+                 --location ${LOCATION} \
+                 --sku Standard_LRS \
+                 --kind StorageV2
+          az storage container show --name tfstate --account-name terrabicepstate \
+            || az storage container create \
+                 --name tfstate \
+                 --account-name terrabicepstate \
+                 --auth-mode login
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
