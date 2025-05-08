@@ -32,12 +32,12 @@ jobs:
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
           cat > bicep/parameters.auto.json << 'EOF'
-{
-  "adminUsername": { "value": "azureuser" },
-  "sshPublicKey":  { "value": "'"$SSH_KEY"'" },
-  "location":      { "value": "'"${{ env.LOCATION }}"'" }
-}
-EOF
+          {
+            "adminUsername": { "value": "azureuser" },
+            "sshPublicKey":  { "value": "'"$SSH_KEY"'" },
+            "location":      { "value": "'"${{ env.LOCATION }}"'" }
+          }
+          EOF
 
       - name: Deploy Bicep with timing
         run: |
