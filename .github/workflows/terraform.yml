@@ -6,10 +6,10 @@ on:
       - main
 
 env:
-  LOCATION:              swedencentral
-  RG_TERRAFORM:         terrabicep-terraform
-  KV_NAME:              terrabicep-kv-cloud23
-  SECRET_NAME:          sshPublicKey
+  LOCATION:        swedencentral
+  RG_TERRAFORM:    terrabicep-terraform
+  KV_NAME:         terrabicep-kv-cloud23
+  SECRET_NAME:     sshPublicKey
 
 jobs:
   teardown:
@@ -21,9 +21,14 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Delete Terraform RG
+      - name: Delete Terraform RG if exists
         run: |
-          az group delete --name $RG_TERRAFORM --yes --no-wait
+          if az group exists --name $RG_TERRAFORM; then
+            echo "Deleting existing Terraform RG $RG_TERRAFORM"
+            az group delete --name $RG_TERRAFORM --yes --no-wait
+          else
+            echo "Terraform RG $RG_TERRAFORM does not exist; skipping delete"
+          fi
 
   terraform:
     needs: teardown
