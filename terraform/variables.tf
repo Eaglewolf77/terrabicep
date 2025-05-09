@@ -34,8 +34,9 @@ variable "kv_name" {
 }
 
 variable "kv_secret_name" {
-  description = "Secret name in Key Vault containing SSH public key"
+  description = "Namnet på din SSH-nyckel i Key Vault (små bokstäver)"
   type        = string
+  default     = "sshpublickey"
 }
 
 variable "kv_resource_group_name" {
