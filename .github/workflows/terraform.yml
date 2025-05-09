@@ -43,25 +43,21 @@ jobs:
 
       - name: Create Resource Group & Storage for Terraform state
         run: |
-          # Create resource group
           az group create \
             --name $RG_TERRAFORM \
             --location $LOCATION
 
-          # Create storage account
           az storage account create \
             --name $SA_NAME \
             --resource-group $RG_TERRAFORM \
             --sku Standard_LRS \
             --location $LOCATION
 
-          # Get storage account key
           KEY=$(az storage account keys list \
             --resource-group $RG_TERRAFORM \
             --account-name $SA_NAME \
             --query "[0].value" -o tsv)
 
-          # Create blob container
           az storage container create \
             --name $CONTAINER_NAME \
             --account-name $SA_NAME \
@@ -81,8 +77,8 @@ jobs:
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
 
-          # Export TF_VAR for Key Vault
-          echo "TF_VAR_kv_name=$SA_NAME"                                 >> $GITHUB_ENV
+          # Korrekt Key Vault‐variabel
+          echo "TF_VAR_kv_name=${{ secrets.ARM_KEY_VAULT_NAME }}"        >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
 
           # Export backend config vars
