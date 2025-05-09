@@ -38,12 +38,12 @@ jobs:
       - name: Wait for Resource Group deletion
         run: |
           echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
-          until ! az group exists --name $RG_TERRAFORM; do
+          while [ "$(az group exists --name $RG_TERRAFORM)" = "true" ]; do
             echo "RG finns fortfarande, kollar igen om 10s…"
             sleep 10
           done
           echo "✅ RG $RG_TERRAFORM är nu borttagen."
-
+  
       - name: Create Resource Group & Storage for Terraform state
         run: |
           az group create \
