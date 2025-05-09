@@ -87,10 +87,11 @@ jobs:
           echo "TF_VAR_tenant_id=${{ secrets.ARM_TENANT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
-
-          # Key Vault-variabler
           echo "TF_VAR_kv_name=$ARM_KEY_VAULT_NAME"                      >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
+
+          # **NY RAD FÖR KV-RG**
+          echo "TF_VAR_kv_resource_group_name=terrabicep"               >> $GITHUB_ENV
 
           # Exportera backend-config
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
