@@ -15,7 +15,7 @@ jobs:
   teardown:
     runs-on: ubuntu-latest
     steps:
-      - name: Azure login
+      - name: Azure login (SP)
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -36,14 +36,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Azure login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          auth-type: service_principal
-
-      - name: Export TF_VAR_* env vars for Terraform
+      - name: Export ARM_* for Backend + TF_VAR_* for Provider
         run: |
+          # För AzureRM‐backend
+          echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+
+          # För Terraform‐variabler
           echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}"   >> $GITHUB_ENV
           echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"             >> $GITHUB_ENV
           echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"     >> $GITHUB_ENV
