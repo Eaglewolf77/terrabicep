@@ -29,18 +29,12 @@ jobs:
 
       - name: Delete old Resource Group (sync)
         run: |
-          EXISTS=$(az group exists --name $RG_TERRAFORM)
-          if [ "$EXISTS" = "true" ]; then
+          set -eux
+          if az group exists --name $RG_TERRAFORM; then
             echo "🗑️ Tar bort RG $RG_TERRAFORM…"
-            az group delete \
-              --name $RG_TERRAFORM \
-              --yes \
-              --no-wait
-
+            az group delete --name $RG_TERRAFORM --yes --no-wait
             echo "⏳ Väntar på att RG $RG_TERRAFORM ska vara helt borttagen…"
-            az group wait \
-              --name $RG_TERRAFORM \
-              --deleted
+            az group wait --name $RG_TERRAFORM --deleted
             echo "✅ RG $RG_TERRAFORM är nu borttagen."
           else
             echo "ℹ️ RG $RG_TERRAFORM finns inte, inget att ta bort."
@@ -48,39 +42,38 @@ jobs:
 
       - name: Create RG & Storage for Terraform state
         run: |
+          set -eux
+          echo "➕ Skapar Resource Group $RG_TERRAFORM…"
           az group create \
             --name $RG_TERRAFORM \
-            --location $LOCATION \
-            --output none \
-            --only-show-errors
+            --location $LOCATION
 
+          echo "➕ Skapar Storage Account $SA_NAME…"
           az storage account create \
             --name $SA_NAME \
             --resource-group $RG_TERRAFORM \
             --sku Standard_LRS \
-            --location $LOCATION \
-            --output none \
-            --only-show-errors
+            --location $LOCATION
 
+          echo "🔑 Hämtar primary key för Storage Account…"
           KEY=$(az storage account keys list \
             --resource-group $RG_TERRAFORM \
             --account-name $SA_NAME \
             --query "[0].value" -o tsv)
 
+          echo "📦 Skapar Blob-container $CONTAINER_NAME…"
           az storage container create \
             --name $CONTAINER_NAME \
             --account-name $SA_NAME \
-            --account-key $KEY \
-            --output none \
-            --only-show-errors
+            --account-key $KEY
 
-          # Exportera ARM_* för Terraform-backend
+          echo "🌐 Exporterar ARM_* för Terraform-backend…"
           echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"         >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"         >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
-          # Exportera TF_VAR_* för Terraform-provider
+          echo "📦 Exporterar TF_VAR_* för Terraform-provider…"
           echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"   >> $GITHUB_ENV
@@ -89,11 +82,9 @@ jobs:
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
           echo "TF_VAR_kv_name=$ARM_KEY_VAULT_NAME"                      >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
+          echo "TF_VAR_kv_resource_group_name=terrabicep"                >> $GITHUB_ENV
 
-          # **NY RAD FÖR KV-RG**
-          echo "TF_VAR_kv_resource_group_name=terrabicep"               >> $GITHUB_ENV
-
-          # Exportera backend-config
+          echo "📦 Exporterar backend-config…"
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
           echo "TF_BACKEND_SA=$SA_NAME"                                  >> $GITHUB_ENV
           echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                    >> $GITHUB_ENV
@@ -107,10 +98,13 @@ jobs:
       - name: Terraform Init & Apply
         working-directory: terraform
         run: |
+          set -eux
+          echo "⚙️  Kör terraform init…"
           terraform init \
             -backend-config="resource_group_name=$TF_BACKEND_RG" \
             -backend-config="storage_account_name=$TF_BACKEND_SA" \
             -backend-config="container_name=$TF_BACKEND_CONTAINER" \
             -backend-config="key=$TF_BACKEND_KEY"
 
+          echo "🚀 Kör terraform apply…"
           terraform apply -auto-approve
