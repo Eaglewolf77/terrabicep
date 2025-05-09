@@ -37,20 +37,21 @@ jobs:
 
       - name: Wait for Resource Group deletion
         run: |
-          if az group exists --name $RG_TERRAFORM | grep -q true; then
-            az group wait --name $RG_TERRAFORM --deleted
-          fi
+          echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
+          until ! az group exists --name $RG_TERRAFORM; do
+            echo "RG finns fortfarande, kollar igen om 10s…"
+            sleep 10
+          done
+          echo "✅ RG $RG_TERRAFORM är nu borttagen."
 
       - name: Create Resource Group & Storage for Terraform state
         run: |
-          # 1) Create resource group
           az group create \
             --name $RG_TERRAFORM \
             --location $LOCATION \
             --output none \
             --only-show-errors
 
-          # 2) Create storage account
           az storage account create \
             --name $SA_NAME \
             --resource-group $RG_TERRAFORM \
@@ -59,13 +60,11 @@ jobs:
             --output none \
             --only-show-errors
 
-          # 3) Get primary storage key
           KEY=$(az storage account keys list \
             --resource-group $RG_TERRAFORM \
             --account-name $SA_NAME \
             --query "[0].value" -o tsv)
 
-          # 4) Create blob container
           az storage container create \
             --name $CONTAINER_NAME \
             --account-name $SA_NAME \
@@ -73,13 +72,13 @@ jobs:
             --output none \
             --only-show-errors
 
-          # 5) Export ARM_* for backend
+          # Exportera ARM_* för backend
           echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
-          # 6) Export TF_VAR_* for Terraform provider
+          # Exportera TF_VAR_* för Terraform-provider
           echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"   >> $GITHUB_ENV
@@ -89,7 +88,7 @@ jobs:
           echo "TF_VAR_kv_name=${{ secrets.ARM_KEY_VAULT_NAME }}"        >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
 
-          # 7) Export backend config vars
+          # Exportera backend‐parametrar
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
           echo "TF_BACKEND_SA=$SA_NAME"                                 >> $GITHUB_ENV
           echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                   >> $GITHUB_ENV
