@@ -25,9 +25,12 @@ data "azurerm_key_vault" "kv" {
   resource_group_name = var.kv_resource_group_name
 }
 
-# KORRIGERAT: Endast ETT data-block för sshkey (använd replace() för att fixa namnet)
 data "azurerm_key_vault_secret" "sshkey" {
-  name         = replace(var.kv_secret_name, "_", "-")  # Ersätter '_' med '-'
+  name = replace(                  # Rensa alla ogiltiga tecken
+    lower(var.kv_secret_name),     # Konvertera till gemener
+    "/[^a-z0-9-]/",               # Regex: Behåll endast a-z, 0-9 och -
+    "-"
+  )
   key_vault_id = data.azurerm_key_vault.kv.id
 }
 
