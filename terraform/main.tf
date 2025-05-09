@@ -24,14 +24,11 @@ data "azurerm_key_vault" "kv" {
   name                = var.kv_name
   resource_group_name = var.kv_resource_group_name
 }
+
+# KORRIGERAT: Endast ETT data-block för sshkey (använd replace() för att fixa namnet)
 data "azurerm_key_vault_secret" "sshkey" {
-  # ersätter alla '_' med '-' så att namnet följer KV:s regler
-  name         = replace(var.kv_secret_name, "_", "-")
-  key_vault_id = data.azurerm_key_vault.kv.id
-}
-data "azurerm_key_vault_secret" "sshkey" {
-  name         = var.kv_secret_name
+  name         = replace(var.kv_secret_name, "_", "-")  # Ersätter '_' med '-'
   key_vault_id = data.azurerm_key_vault.kv.id
 }
 
-# … resten of your resources …
+# ... resten av din konfiguration ...
