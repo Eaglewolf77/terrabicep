@@ -43,7 +43,7 @@ jobs:
           cat <<EOF > bicep/parameters.auto.json
           {
             "adminUsername":     { "value": "azureuser" },
-            "sshPublicKey":      { "value": "$SSH_KEY" },
+            "sshpublickey":      { "value": "$SSH_KEY" },
             "location":          { "value": "$LOCATION" },
             "resourceGroupName": { "value": "$RG_BICEP" }
           }

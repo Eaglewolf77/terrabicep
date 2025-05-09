@@ -5,7 +5,7 @@ param location        string = 'swedencentral'
 param adminUsername   string
 
 @description('SSH public key for VM login')
-param sshPublicKey    string
+param sshpublickey    string
 
 // Virtuellt nätverk
 resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' = {
@@ -64,7 +64,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-07-01' = {
           publicKeys: [
             {
               path: '/home/${adminUsername}/.ssh/authorized_keys'
-              keyData: sshPublicKey
+              keyData: sshpublickey
             }
           ]
         }
