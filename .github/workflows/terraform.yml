@@ -6,10 +6,11 @@ on:
       - main
 
 env:
-  LOCATION:       swedencentral
-  RG_TERRAFORM:   terrabicep-terraform
-  SA_NAME:        terrabicepstate
-  CONTAINER_NAME: tfstate
+  LOCATION:        swedencentral
+  RG_TERRAFORM:    terrabicep-terraform
+  SA_NAME:         terrabicepstate
+  CONTAINER_NAME:  tfstate
+  SECRET_NAME:     sshPublicKey
 
 jobs:
   plan_and_apply:
@@ -79,6 +80,10 @@ jobs:
           echo "TF_VAR_tenant_id=${{ secrets.ARM_TENANT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
+
+          # Export TF_VAR for Key Vault
+          echo "TF_VAR_kv_name=$SA_NAME"                                 >> $GITHUB_ENV
+          echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
 
           # Export backend config vars
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
