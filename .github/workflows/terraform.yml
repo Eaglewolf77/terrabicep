@@ -24,12 +24,8 @@ jobs:
       - name: Delete Terraform RG if exists
         run: |
           EXISTS=$(az group exists --name $RG_TERRAFORM)
-          echo "Terraform RG exists? $EXISTS"
           if [ "$EXISTS" = "true" ]; then
-            echo "Deleting existing Terraform RG $RG_TERRAFORM"
             az group delete --name $RG_TERRAFORM --yes --no-wait
-          else
-            echo "Terraform RG $RG_TERRAFORM does not exist; skipping delete"
           fi
 
   terraform:
@@ -46,16 +42,16 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Export env vars for Terraform
+      - name: Export TF_VAR_* env vars for Terraform
         run: |
-          echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
-          echo "LOCATION=$LOCATION"                             >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=$RG_TERRAFORM"                   >> $GITHUB_ENV
-          echo "KV_NAME=$KV_NAME"                               >> $GITHUB_ENV
-          echo "SECRET_NAME=$SECRET_NAME"                       >> $GITHUB_ENV
+          echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}"   >> $GITHUB_ENV
+          echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"             >> $GITHUB_ENV
+          echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"     >> $GITHUB_ENV
+          echo "TF_VAR_tenant_id=${{ secrets.ARM_TENANT_ID }}"             >> $GITHUB_ENV
+          echo "TF_VAR_location=$LOCATION"                                 >> $GITHUB_ENV
+          echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                  >> $GITHUB_ENV
+          echo "TF_VAR_kv_name=$KV_NAME"                                   >> $GITHUB_ENV
+          echo "TF_VAR_kv_secret_name=$SECRET_NAME"                        >> $GITHUB_ENV
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
@@ -70,8 +66,4 @@ jobs:
             -backend-config="storage_account_name=terrabicepstate" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
-          terraform apply -auto-approve \
-            -var="location=$LOCATION" \
-            -var="resource_group_name=$RG_TERRAFORM" \
-            -var="kv_name=$KV_NAME" \
-            -var="kv_secret_name=$SECRET_NAME"
+          terraform apply -auto-approve
