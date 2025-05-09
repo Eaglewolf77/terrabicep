@@ -29,12 +29,14 @@ jobs:
 
       - name: Delete old Resource Group (sync)
         run: |
-          if az group exists --name $RG_TERRAFORM; then
+          EXISTS=$(az group exists --name $RG_TERRAFORM)
+          if [ "$EXISTS" = "true" ]; then
             echo "🗑️ Tar bort RG $RG_TERRAFORM…"
             az group delete \
               --name $RG_TERRAFORM \
               --yes \
               --no-wait
+
             echo "⏳ Väntar på att RG $RG_TERRAFORM ska vara helt borttagen…"
             az group wait \
               --name $RG_TERRAFORM \
