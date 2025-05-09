@@ -27,23 +27,22 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Delete old Resource Group (async)
+      - name: Delete old Resource Group (sync)
         run: |
-          if az group exists --name $RG_TERRAFORM | grep -q true; then
+          if az group exists --name $RG_TERRAFORM; then
+            echo "🗑️ Tar bort RG $RG_TERRAFORM…"
             az group delete \
               --name $RG_TERRAFORM \
               --yes \
               --no-wait
+            echo "⏳ Väntar på att RG $RG_TERRAFORM ska vara helt borttagen…"
+            az group wait \
+              --name $RG_TERRAFORM \
+              --deleted
+            echo "✅ RG $RG_TERRAFORM är nu borttagen."
+          else
+            echo "ℹ️ RG $RG_TERRAFORM finns inte, inget att ta bort."
           fi
-
-      - name: Wait for Resource Group deletion
-        run: |
-          echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
-          while [ "$(az group exists --name $RG_TERRAFORM)" = "true" ]; do
-            echo "RG finns fortfarande, kollar igen om 10s…"
-            sleep 10
-          done
-          echo "✅ RG $RG_TERRAFORM är nu borttagen."
 
       - name: Create RG & Storage for Terraform state
         run: |
@@ -93,9 +92,9 @@ jobs:
 
           # Exportera backend-config
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
-          echo "TF_BACKEND_SA=$SA_NAME"                                 >> $GITHUB_ENV
-          echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                   >> $GITHUB_ENV
-          echo "TF_BACKEND_KEY=terraform.tfstate"                       >> $GITHUB_ENV
+          echo "TF_BACKEND_SA=$SA_NAME"                                  >> $GITHUB_ENV
+          echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                    >> $GITHUB_ENV
+          echo "TF_BACKEND_KEY=terraform.tfstate"                        >> $GITHUB_ENV
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
@@ -110,4 +109,5 @@ jobs:
             -backend-config="storage_account_name=$TF_BACKEND_SA" \
             -backend-config="container_name=$TF_BACKEND_CONTAINER" \
             -backend-config="key=$TF_BACKEND_KEY"
+
           terraform apply -auto-approve
