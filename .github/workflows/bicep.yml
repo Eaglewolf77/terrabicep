@@ -6,64 +6,54 @@ on:
       - main
 
 env:
-  LOCATION:       swedencentral
-  RESOURCE_GROUP: terrabicep
-  RG_BICEP:       terrabicep-bicep
+  # The name of the RG you want Bicep to deploy into
+  RG_BICEP: terrabicep-bicep
+  LOCATION: swedencentral
 
 jobs:
-  bicep:
+  deploy_bicep:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Azure login as Service Principal
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          auth-type: service_principal
+          creds:      ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type:  service_principal
 
-      - name: Ensure clean Bicep RG
+      - name: Get SSH key and build parameters file
+        shell: bash
+        env:
+          KEYVAULT_NAME: ${{ secrets.ARM_KEY_VAULT_NAME }}
+          SECRET_NAME:  ${{ secrets.ARM_SECRETS_ID }}
+          LOCATION:     ${{ env.LOCATION }}
+          RG_BICEP:     ${{ env.RG_BICEP }}
         run: |
-          if az group exists --name $RG_BICEP | grep -q true; then
-            az group delete \
-              --name $RG_BICEP \
-              --yes \
-              --no-wait
-            az group wait \
-              --name   $RG_BICEP \
-              --deleted
-          fi
-
-      - name: Create Bicep RG
-        run: |
-          az group create \
-            --resource-group $RG_BICEP \
-            --location      $LOCATION \
-            --output        none
-
-      - name: Get SSH key and generate parameters
-        run: |
+          # Fetch the public key from Key Vault and mask it in the logs
           SSH_KEY=$(az keyvault secret show \
-            --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
-            --name ${{ secrets.ARM_SECRETS_ID }} \
+            --vault-name "$KEYVAULT_NAME" \
+            --name "$SECRET_NAME" \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
+
+          # Write out the Bicep parameters file
           mkdir -p bicep
           cat <<EOF > bicep/parameters.auto.json
           {
             "adminUsername":     { "value": "azureuser" },
             "sshPublicKey":      { "value": "$SSH_KEY" },
-            "location":          { "value": "${{ env.LOCATION }}" },
+            "location":          { "value": "$LOCATION" },
             "resourceGroupName": { "value": "$RG_BICEP" }
           }
           EOF
-      - name: Deploy Bicep with timing
+      - name: Deploy Bicep template
+        shell: bash
+        env:
+          RG_BICEP: ${{ env.RG_BICEP }}
         run: |
-          echo "Starting Bicep at $(date)"
-          time az deployment group create \
-            --resource-group $RG_BICEP \
+          az deployment group create \
+            --resource-group "$RG_BICEP" \
             --template-file bicep/main.bicep \
-            --parameters @bicep/parameters.auto.json
-          echo "Finished Bicep at $(date)"
+            --parameters "@bicep/parameters.auto.json"
