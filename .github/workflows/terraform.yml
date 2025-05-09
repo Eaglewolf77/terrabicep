@@ -43,45 +43,53 @@ jobs:
 
       - name: Create Resource Group & Storage for Terraform state
         run: |
+          # 1) Create resource group
           az group create \
             --name $RG_TERRAFORM \
-            --location $LOCATION
+            --location $LOCATION \
+            --output none \
+            --only-show-errors
 
+          # 2) Create storage account
           az storage account create \
             --name $SA_NAME \
             --resource-group $RG_TERRAFORM \
             --sku Standard_LRS \
-            --location $LOCATION
+            --location $LOCATION \
+            --output none \
+            --only-show-errors
 
+          # 3) Get primary storage key
           KEY=$(az storage account keys list \
             --resource-group $RG_TERRAFORM \
             --account-name $SA_NAME \
             --query "[0].value" -o tsv)
 
+          # 4) Create blob container
           az storage container create \
             --name $CONTAINER_NAME \
             --account-name $SA_NAME \
-            --account-key $KEY
+            --account-key $KEY \
+            --output none \
+            --only-show-errors
 
-          # Export ARM_* for backend
+          # 5) Export ARM_* for backend
           echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
-          # Export TF_VAR_* for Terraform provider
+          # 6) Export TF_VAR_* for Terraform provider
           echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"   >> $GITHUB_ENV
           echo "TF_VAR_tenant_id=${{ secrets.ARM_TENANT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
-
-          # Korrekt Key Vault‐variabel
           echo "TF_VAR_kv_name=${{ secrets.ARM_KEY_VAULT_NAME }}"        >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
 
-          # Export backend config vars
+          # 7) Export backend config vars
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
           echo "TF_BACKEND_SA=$SA_NAME"                                 >> $GITHUB_ENV
           echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                   >> $GITHUB_ENV
