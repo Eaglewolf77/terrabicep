@@ -12,7 +12,7 @@ env:
   CONTAINER_NAME:        tfstate
   ARM_KEY_VAULT_NAME:    ${{ secrets.ARM_KEY_VAULT_NAME }}
   SECRET_NAME:           ${{ secrets.ARM_SECRETS_ID }}
-  
+
 jobs:
   plan_and_apply:
     runs-on: ubuntu-latest
@@ -30,16 +30,12 @@ jobs:
       - name: Delete old Resource Group (async)
         run: |
           if az group exists --name $RG_TERRAFORM | grep -q true; then
-            az group delete --name $RG_TERRAFORM --yes --no-wait
+            az group delete \
+              --name $RG_TERRAFORM \
+              --yes \
+              --no-wait
           fi
-          - name: Wait for Resource Group deletion
-          run: |
-            echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
-            while [ "$(az group exists --name $RG_TERRAFORM)" = "true" ]; do
-              echo "RG finns fortfarande, kollar igen om 10s…"
-              sleep 10
-            done
-            echo "✅ RG $RG_TERRAFORM är nu borttagen."
+
       - name: Wait for Resource Group deletion
         run: |
           echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
@@ -48,8 +44,8 @@ jobs:
             sleep 10
           done
           echo "✅ RG $RG_TERRAFORM är nu borttagen."
-  
-      - name: Create RG & Storage for Terraform state
+
+      - name: Create Resource Group & Storage for Terraform state
         run: |
           az group create \
             --name $RG_TERRAFORM \
@@ -91,7 +87,7 @@ jobs:
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
 
-          # Här kommer Key Vault-variablerna:
+          # Key Vault-variabler
           echo "TF_VAR_kv_name=$ARM_KEY_VAULT_NAME"                      >> $GITHUB_ENV
           echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
 
