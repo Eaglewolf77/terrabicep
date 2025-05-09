@@ -23,7 +23,9 @@ jobs:
 
       - name: Delete Bicep RG if exists
         run: |
-          if az group exists --name $RG_BICEP; then
+          EXISTS=$(az group exists --name $RG_BICEP)
+          echo "Bicep RG exists? $EXISTS"
+          if [ "$EXISTS" = "true" ]; then
             echo "Deleting existing Bicep RG $RG_BICEP"
             az group delete --name $RG_BICEP --yes --no-wait
           else

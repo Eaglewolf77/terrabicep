@@ -23,7 +23,9 @@ jobs:
 
       - name: Delete Terraform RG if exists
         run: |
-          if az group exists --name $RG_TERRAFORM; then
+          EXISTS=$(az group exists --name $RG_TERRAFORM)
+          echo "Terraform RG exists? $EXISTS"
+          if [ "$EXISTS" = "true" ]; then
             echo "Deleting existing Terraform RG $RG_TERRAFORM"
             az group delete --name $RG_TERRAFORM --yes --no-wait
           else
