@@ -73,7 +73,7 @@ jobs:
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
           echo "TF_VAR_kv_name=$ARM_KEY_VAULT_NAME"                      >> $GITHUB_ENV
-          echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
+          echo "TF_VAR_kv_secret_name=sshpublickey" >> $GITHUB_ENV
 
           # **NY RAD**: pekar Key Vault till den ursprungliga RG
           echo "TF_VAR_kv_resource_group_name=terrabicep"               >> $GITHUB_ENV
