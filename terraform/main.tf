@@ -24,7 +24,11 @@ data "azurerm_key_vault" "kv" {
   name                = var.kv_name
   resource_group_name = var.kv_resource_group_name
 }
-
+data "azurerm_key_vault_secret" "sshkey" {
+  # ersätter alla '_' med '-' så att namnet följer KV:s regler
+  name         = replace(var.kv_secret_name, "_", "-")
+  key_vault_id = data.azurerm_key_vault.kv.id
+}
 data "azurerm_key_vault_secret" "sshkey" {
   name         = var.kv_secret_name
   key_vault_id = data.azurerm_key_vault.kv.id
