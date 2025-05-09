@@ -43,10 +43,16 @@ jobs:
       - name: Create RG & Storage for Terraform state
         run: |
           set -eux
+
           echo "➕ Skapar Resource Group $RG_TERRAFORM…"
           az group create \
             --name $RG_TERRAFORM \
             --location $LOCATION
+
+          echo "⏳ Väntar tills RG $RG_TERRAFORM är färdig–initialiserad…"
+          az group wait \
+            --name $RG_TERRAFORM \
+            --created
 
           echo "➕ Skapar Storage Account $SA_NAME…"
           az storage account create \
@@ -99,7 +105,7 @@ jobs:
         working-directory: terraform
         run: |
           set -eux
-          echo "⚙️  Kör terraform init…"
+          echo "⚙️ Kör terraform init…"
           terraform init \
             -backend-config="resource_group_name=$TF_BACKEND_RG" \
             -backend-config="storage_account_name=$TF_BACKEND_SA" \
