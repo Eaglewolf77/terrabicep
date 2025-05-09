@@ -1,4 +1,4 @@
-name: Terraform Deployment (hardcoded creds)
+name: Terraform Deployment
 
 on:
   push:
@@ -6,10 +6,12 @@ on:
       - main
 
 env:
-  LOCATION:       swedencentral
-  RG_TERRAFORM:   terrabicep-terraform
-  SA_NAME:        terrabicepstate
-  CONTAINER_NAME: tfstate
+  LOCATION:           swedencentral
+  RG_TERRAFORM:       terrabicep-terraform
+  SA_NAME:            terrabicepstate
+  CONTAINER_NAME:     tfstate
+  ARM_KEY_VAULT_NAME: ${{ secrets.ARM_KEY_VAULT_NAME }}
+  SECRET_NAME:        ${{ secrets.ARM_SECRETS_ID }}
 
 jobs:
   plan_and_apply:
@@ -19,54 +21,81 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Azure CLI login as Service Principal
-        uses: azure/cli@v1
+      - name: Azure login (Service Principal)
+        uses: azure/login@v1
         with:
-          inlineScript: |
-            az login --service-principal \
-              --username ${{ secrets.ARM_CLIENT_ID }} \
-              --password ${{ secrets.ARM_CLIENT_SECRET }} \
-              --tenant   ${{ secrets.ARM_TENANT_ID }}
-            az account set --subscription ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service_principal
 
-      - name: Create RG & Storage for state (if needed)
+      - name: Delete old Resource Group (async)
+        run: |
+          if az group exists --name $RG_TERRAFORM | grep -q true; then
+            az group delete \
+              --name $RG_TERRAFORM \
+              --yes \
+              --no-wait
+          fi
+
+      - name: Wait for Resource Group deletion
+        run: |
+          echo "⏳ Väntar på att RG $RG_TERRAFORM ska tas bort…"
+          while [ "$(az group exists --name $RG_TERRAFORM)" = "true" ]; do
+            echo "RG finns fortfarande, kollar igen om 10s…"
+            sleep 10
+          done
+          echo "✅ RG $RG_TERRAFORM är nu borttagen."
+
+      - name: Create RG & Storage for Terraform state
         run: |
           az group create \
             --name $RG_TERRAFORM \
             --location $LOCATION \
-            --output none
+            --output none \
+            --only-show-errors
+
           az storage account create \
             --name $SA_NAME \
             --resource-group $RG_TERRAFORM \
             --sku Standard_LRS \
             --location $LOCATION \
-            --output none
+            --output none \
+            --only-show-errors
+
           KEY=$(az storage account keys list \
             --resource-group $RG_TERRAFORM \
             --account-name $SA_NAME \
             --query "[0].value" -o tsv)
+
           az storage container create \
             --name $CONTAINER_NAME \
             --account-name $SA_NAME \
             --account-key $KEY \
-            --output none
+            --output none \
+            --only-show-errors
 
-          # Exportera creds för Terraform-backend + provider
+          # Exportera ARM_* för Terraform-backend
           echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"         >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"         >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
+          # Exportera TF_VAR_* för Terraform-provider
           echo "TF_VAR_subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_client_id=${{ secrets.ARM_CLIENT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_client_secret=${{ secrets.ARM_CLIENT_SECRET }}"   >> $GITHUB_ENV
           echo "TF_VAR_tenant_id=${{ secrets.ARM_TENANT_ID }}"           >> $GITHUB_ENV
           echo "TF_VAR_location=$LOCATION"                               >> $GITHUB_ENV
           echo "TF_VAR_resource_group_name=$RG_TERRAFORM"                >> $GITHUB_ENV
+
+          # Key Vault-variabler
+          echo "TF_VAR_kv_name=$ARM_KEY_VAULT_NAME"                      >> $GITHUB_ENV
+          echo "TF_VAR_kv_secret_name=$SECRET_NAME"                      >> $GITHUB_ENV
+
+          # Exportera backend-config
           echo "TF_BACKEND_RG=$RG_TERRAFORM"                             >> $GITHUB_ENV
-          echo "TF_BACKEND_SA=$SA_NAME"                                  >> $GITHUB_ENV
-          echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                    >> $GITHUB_ENV
-          echo "TF_BACKEND_KEY=terraform.tfstate"                        >> $GITHUB_ENV
+          echo "TF_BACKEND_SA=$SA_NAME"                                 >> $GITHUB_ENV
+          echo "TF_BACKEND_CONTAINER=$CONTAINER_NAME"                   >> $GITHUB_ENV
+          echo "TF_BACKEND_KEY=terraform.tfstate"                       >> $GITHUB_ENV
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
