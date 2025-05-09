@@ -7,33 +7,11 @@ on:
 
 env:
   LOCATION:       swedencentral
+  RESOURCE_GROUP: terrabicep
   RG_BICEP:       terrabicep-bicep
-  KV_NAME:        terrabicep-kv-cloud23
-  SECRET_NAME:    sshPublicKey
 
 jobs:
-  teardown:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Azure login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          auth-type: service_principal
-
-      - name: Delete Bicep RG if exists
-        run: |
-          EXISTS=$(az group exists --name $RG_BICEP)
-          echo "Bicep RG exists? $EXISTS"
-          if [ "$EXISTS" = "true" ]; then
-            echo "Deleting existing Bicep RG $RG_BICEP"
-            az group delete --name $RG_BICEP --yes --no-wait
-          else
-            echo "Bicep RG $RG_BICEP does not exist; skipping delete"
-          fi
-
-  deploy:
-    needs: teardown
+  bicep:
     runs-on: ubuntu-latest
 
     steps:
@@ -46,29 +24,46 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Debug KV names
+      - name: Ensure clean Bicep RG
         run: |
-          echo "Using Key Vault name : $KV_NAME"
-          echo "Using Secret name    : $SECRET_NAME"
+          if az group exists --name $RG_BICEP | grep -q true; then
+            az group delete \
+              --name $RG_BICEP \
+              --yes \
+              --no-wait
+            az group wait \
+              --name   $RG_BICEP \
+              --deleted
+          fi
+
+      - name: Create Bicep RG
+        run: |
+          az group create \
+            --resource-group $RG_BICEP \
+            --location      $LOCATION \
+            --output        none
 
       - name: Get SSH key and generate parameters
         run: |
           SSH_KEY=$(az keyvault secret show \
-            --vault-name "$KV_NAME" \
-            --name "$SECRET_NAME" \
+            --vault-name ${{ secrets.ARM_KEY_VAULT_NAME }} \
+            --name ${{ secrets.ARM_SECRETS_ID }} \
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          echo "{\"adminUsername\":{\"value\":\"azureuser\"},\"sshPublicKey\":{\"value\":\"$SSH_KEY\"},\"location\":{\"value\":\"$LOCATION\"}}" > bicep/parameters.auto.json
+          cat <<EOF > bicep/parameters.auto.json
+{
+  "adminUsername":     { "value": "azureuser" },
+  "sshPublicKey":      { "value": "$SSH_KEY" },
+  "location":          { "value": "${{ env.LOCATION }}" },
+  "resourceGroupName": { "value": "$RG_BICEP" }
+}
+EOF
 
-      - name: Create Resource Group if missing
-        run: |
-          az group create --name $RG_BICEP --location $LOCATION --yes
-
-      - name: Deploy Bicep
+      - name: Deploy Bicep with timing
         run: |
           echo "Starting Bicep at $(date)"
-          az deployment group create \
+          time az deployment group create \
             --resource-group $RG_BICEP \
             --template-file bicep/main.bicep \
             --parameters @bicep/parameters.auto.json
