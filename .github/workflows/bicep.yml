@@ -7,12 +7,26 @@ on:
 
 env:
   LOCATION:       swedencentral
-  RESOURCE_GROUP: terrabicep
-  KV_NAME:        terrabicep-kv-cloud23    # Hård-kodade, ej från secrets
-  SECRET_NAME:    sshPublicKey             # Hård-kodade
+  RG_BICEP:       terrabicep-bicep
+  KV_NAME:        terrabicep-kv-cloud23
+  SECRET_NAME:    sshPublicKey
 
 jobs:
-  bicep:
+  teardown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service_principal
+
+      - name: Delete Bicep RG
+        run: |
+          az group delete --name $RG_BICEP --yes --no-wait
+
+  deploy:
+    needs: teardown
     runs-on: ubuntu-latest
 
     steps:
@@ -38,14 +52,14 @@ jobs:
             --query value -o tsv)
           echo "::add-mask::$SSH_KEY"
           mkdir -p bicep
-          # Inga *** alls här:
           echo "{\"adminUsername\":{\"value\":\"azureuser\"},\"sshPublicKey\":{\"value\":\"$SSH_KEY\"},\"location\":{\"value\":\"$LOCATION\"}}" > bicep/parameters.auto.json
 
       - name: Deploy Bicep
         run: |
           echo "Starting Bicep at $(date)"
+          az group create --name $RG_BICEP --location $LOCATION --yes
           az deployment group create \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group $RG_BICEP \
             --template-file bicep/main.bicep \
             --parameters @bicep/parameters.auto.json
           echo "Finished Bicep at $(date)"

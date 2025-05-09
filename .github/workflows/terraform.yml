@@ -2,46 +2,53 @@ name: Terraform Deployment
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 env:
-  LOCATION:       swedencentral
-  RESOURCE_GROUP: terrabicep
+  LOCATION:              swedencentral
+  RG_TERRAFORM:         terrabicep-terraform
+  KV_NAME:              terrabicep-kv-cloud23
+  SECRET_NAME:          sshPublicKey
 
 jobs:
-  terraform:
+  teardown:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Azure login as Service Principal
+      - name: Azure login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: service_principal
 
-      - name: Export ARM_* env vars for Terraform
+      - name: Delete Terraform RG
         run: |
-          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}"      >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}"      >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+          az group delete --name $RG_TERRAFORM --yes --no-wait
 
-      - name: Ensure storage account & container exist
+  terraform:
+    needs: teardown
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service_principal
+
+      - name: Export env vars for Terraform
         run: |
-          az storage account show --name terrabicepstate --resource-group ${RESOURCE_GROUP} \
-            || az storage account create \
-                 --name terrabicepstate \
-                 --resource-group ${RESOURCE_GROUP} \
-                 --location ${LOCATION} \
-                 --sku Standard_LRS \
-                 --kind StorageV2
-          az storage container show --name tfstate --account-name terrabicepstate \
-            || az storage container create \
-                 --name tfstate \
-                 --account-name terrabicepstate \
-                 --auth-mode login
+          echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}"      >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}"      >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "LOCATION=$LOCATION"                             >> $GITHUB_ENV
+          echo "RESOURCE_GROUP=$RG_TERRAFORM"                   >> $GITHUB_ENV
+          echo "KV_NAME=$KV_NAME"                               >> $GITHUB_ENV
+          echo "SECRET_NAME=$SECRET_NAME"                       >> $GITHUB_ENV
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
@@ -51,19 +58,13 @@ jobs:
       - name: Terraform Init & Apply
         working-directory: terraform
         run: |
-          echo "Starting Terraform at $(date)"
           terraform init \
-            -backend-config="resource_group_name=${RESOURCE_GROUP}" \
+            -backend-config="resource_group_name=$RG_TERRAFORM" \
             -backend-config="storage_account_name=terrabicepstate" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
           terraform apply -auto-approve \
-            -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-            -var="client_id=$ARM_CLIENT_ID" \
-            -var="client_secret=$ARM_CLIENT_SECRET" \
-            -var="tenant_id=$ARM_TENANT_ID" \
-            -var="location=${LOCATION}" \
-            -var="resource_group_name=${RESOURCE_GROUP}" \
-            -var="kv_name=terrabicep-kv-cloud23" \
-            -var="kv_secret_name=sshPublicKey"
-          echo "Finished Terraform at $(date)"
+            -var="location=$LOCATION" \
+            -var="resource_group_name=$RG_TERRAFORM" \
+            -var="kv_name=$KV_NAME" \
+            -var="kv_secret_name=$SECRET_NAME"
