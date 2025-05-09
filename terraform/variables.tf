@@ -1,40 +1,45 @@
 variable "subscription_id" {
-  type        = string
   description = "Azure subscription ID"
+  type        = string
 }
 
 variable "client_id" {
-  type        = string
   description = "Service Principal client ID"
+  type        = string
 }
 
 variable "client_secret" {
-  type        = string
   description = "Service Principal client secret"
-  sensitive   = true
+  type        = string
 }
 
 variable "tenant_id" {
+  description = "Service Principal tenant ID"
   type        = string
-  description = "Azure tenant ID"
 }
 
 variable "location" {
-  type        = string
   description = "Azure region"
+  type        = string
 }
 
 variable "resource_group_name" {
+  description = "Name of resource group to deploy network and VM"
   type        = string
-  description = "Target resource group"
 }
 
 variable "kv_name" {
-  type        = string
   description = "Key Vault name"
+  type        = string
 }
 
 variable "kv_secret_name" {
+  description = "Secret name in Key Vault containing SSH public key"
   type        = string
-  description = "Name of the SSH-key secret in Key Vault"
+}
+
+variable "kv_resource_group_name" {
+  description = "Resource Group where Key Vault lives"
+  type        = string
+  default     = "terrabicep"
 }
